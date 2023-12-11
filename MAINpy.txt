@@ -1,0 +1,75 @@
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.optimizers import Adam
+
+# Set the path to your dataset
+train_data_dir = 'path/to/train/data'
+validation_data_dir = 'path/to/validation/data'
+
+# Define parameters
+input_shape = (224, 224, 3)  # Adjust based on your image size
+num_classes = 10  # Adjust based on the number of classes in your dataset
+batch_size = 32
+
+# Data augmentation for training set
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True
+)
+
+# Rescaling for validation set
+validation_datagen = ImageDataGenerator(rescale=1./255)
+
+# Flow training images in batches using train_datagen generator
+train_generator = train_datagen.flow_from_directory(
+    train_data_dir,
+    target_size=input_shape[:2],
+    batch_size=batch_size,
+    class_mode='categorical'
+)
+
+# Flow validation images in batches using validation_datagen generator
+validation_generator = validation_datagen.flow_from_directory(
+    validation_data_dir,
+    target_size=input_shape[:2],
+    batch_size=batch_size,
+    class_mode='categorical'
+)
+
+# Build the CNN model
+model = models.Sequential()
+
+model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape))
+model.add(layers.MaxPooling2D((2, 2)))
+
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+
+model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+
+model.add(layers.Flatten())
+model.add(layers.Dense(128, activation='relu'))
+model.add(layers.Dropout(0.5))
+model.add(layers.Dense(num_classes, activation='softmax'))
+
+# Compile the model
+model.compile(optimizer=Adam(learning_rate=0.001),
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Train the model
+epochs = 10  # Adjust based on your needs
+history = model.fit(
+    train_generator,
+    steps_per_epoch=train_generator.samples // batch_size,
+    epochs=epochs,
+    validation_data=validation_generator,
+    validation_steps=validation_generator.samples // batch_size
+)
+
+# Save the model
+model.save('visionclassify_pro_model.h5')
